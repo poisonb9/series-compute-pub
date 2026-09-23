@@ -1,0 +1,14 @@
+pytest>=8.0
+# ⛔ ENTRA DECLARADO, e a declaracao NAO e' opcional: `.venv/` esta' no
+#    `.gitignore`, entao instalar NAO move a arvore -- quem move e' declarar
+#    aqui e no lock. Venv e lock divergentes sao a classe "hash identico nao
+#    significa rastreado" que a `phase_s106` registrou.
+# ⚠️ E instalar NAO autoriza usar: `tools/carimbar_suite.py` CONTINUA recusando
+#    `-n`, porque a suite carimbada sob xdist ainda produz recibo degradado --
+#    ver o bloco do paralelizador. A recusa so' cai quando o conserto do
+#    plugin estiver provado E os testes que escrevem na RAIZ estiverem
+#    serializados.
+pytest-xdist>=3.8
+pandas>=2.2
+numpy>=1.26
+PyYAML>=6.0

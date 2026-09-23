@@ -1,0 +1,85 @@
+name: CI
+
+# ⭐ Este workflow NAO precisa de dado externo nem de segredo nenhum.
+#    Por isso ele e' o primeiro a rodar na nuvem: prova a esteira inteira
+#    (checkout, python, deps, suite, medicoes) sem depender do feed lento
+#    nem expor coisa alguma.
+#
+# ⚠️ Em repositorio PUBLICO os minutos de Actions sao gratuitos e ilimitados
+#    em runner padrao. Em PRIVADO seriam 2.000/mes. Foi essa diferenca que
+#    motivou a separacao -- ver o DICIONARIO no repo principal.
+#
+# ⛔ LOG DE ACTIONS EM REPO PUBLICO E' PUBLICO. Nada aqui deve imprimir
+#    caminho de disco da maquina local, chave, ou conteudo de estrategia.
+#    Este repo nao tem estrategia por construcao, mas a regra vale para
+#    qualquer passo que alguem acrescente depois.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install --quiet -r requirements.txt
+
+      - name: Suite (183 testes, sem dado externo)
+        run: |
+          set -o pipefail
+          python -m pytest -q --no-header -p no:cacheprovider
+          echo "pytest exit real: $?"
+
+  # ⭐ Os pinos das medicoes sao PROVA POR VALOR e nao leem disco: conferem
+  #    contra numero publicado em livro (o critico do ADF em -2,8623, o
+  #    exemplo 0,72 do binHR) ou contra calculo feito a mao. Se um destes
+  #    cair, a medicao correspondente esta' mentindo.
+  pinos-das-medicoes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        medicao:
+          - medir_d_minimo
+          - medir_barras_tick_x_tempo
+          - medir_tabela_de_custo_horario
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pinos de ${{ matrix.medicao }}
+        run: |
+          set -o pipefail
+          python tools/medicoes/${{ matrix.medicao }}.py --autoteste
+          echo "exit real: $?"
+
+  # Sonda o feed A PARTIR DO RUNNER. E' a unica coisa que nao se mede da
+  # maquina de casa, e decide se o dado pode ser baixado ou tem de subir
+  # pronto. Nao falha o workflow: e' informacao, nao porteiro.
+  sonda-do-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Quanto tempo levaria baixar o dado daqui
+        run: python tools/sondar_velocidade_do_feed.py --n 10
