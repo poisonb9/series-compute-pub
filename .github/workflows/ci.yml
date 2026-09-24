@@ -69,6 +69,35 @@ jobs:
           python tools/medicoes/${{ matrix.medicao }}.py --autoteste
           echo "exit real: $?"
 
+  # ⭐ A carga que trouxe o projeto para a nuvem. Roda sobre dado SINTETICO:
+  #    baixar tick real no runner projeta 178 h (medido aqui em 24/09/2026),
+  #    entao o que se exercita e' a esteira e o CUSTO, nao o numero.
+  #    ⛔ Nenhum valor deste job e' desempenho de estrategia.
+  carga-cpcv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grupos: 6
+            teste: 2
+          - grupos: 10
+            teste: 2
+          - grupos: 12
+            teste: 3     # 220 caminhos: o caso caro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: CPCV ${{ matrix.grupos }}g/${{ matrix.teste }}t
+        run: |
+          set -o pipefail
+          python tools/medicoes/rodar_na_nuvem.py --alvo cpcv \
+            --n 6000 --grupos ${{ matrix.grupos }} --teste ${{ matrix.teste }}
+          echo "exit real: $?"
+
   # Sonda o feed A PARTIR DO RUNNER. E' a unica coisa que nao se mede da
   # maquina de casa, e decide se o dado pode ser baixado ou tem de subir
   # pronto. Nao falha o workflow: e' informacao, nao porteiro.
